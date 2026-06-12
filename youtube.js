@@ -1,32 +1,59 @@
-
+const { YoutubeTranscript } = require('youtube-transcript');
 /**
  * Maps youtube-transcript custom errors to standard Errors with status codes.
  */
 function mapError(error) {
-  const name = error.constructor.name;
-  const message = error.message || '';
+  const name = error?.constructor?.name || '';
+  const message = error?.message || '';
 
-  let mappedError;
-  if (error instanceof YoutubeTranscriptDisabledError || name === 'YoutubeTranscriptDisabledError') {
-    mappedError = new Error('Transcripts are disabled for this video by the uploader.');
-    mappedError.status = 403;
-  } else if (error instanceof YoutubeTranscriptVideoUnavailableError || name === 'YoutubeTranscriptVideoUnavailableError') {
-    mappedError = new Error('The video is no longer available or the video ID is invalid.');
-    mappedError.status = 404;
-  } else if (error instanceof YoutubeTranscriptNotAvailableError || name === 'YoutubeTranscriptNotAvailableError') {
-    mappedError = new Error('No transcript found. The video may not have captions available.');
-    mappedError.status = 404;
-  } else if (error instanceof YoutubeTranscriptTooManyRequestError || name === 'YoutubeTranscriptTooManyRequestError') {
-    mappedError = new Error('YouTube is rate-limiting requests. Please try again in a minute.');
-    mappedError.status = 429;
-  } else if (message.includes('too many requests') || message.includes('429')) {
-    mappedError = new Error('YouTube is rate-limiting requests. Please try again in a minute.');
-    mappedError.status = 429;
-  } else {
-    mappedError = new Error(message || 'Failed to fetch transcript. Please verify the URL and try again.');
-    mappedError.status = 502;
+  if (
+    name.includes('Disabled') ||
+    message.toLowerCase().includes('disabled')
+  ) {
+    const err = new Error(
+      'Transcripts are disabled for this video by the uploader.'
+    );
+    err.status = 403;
+    return err;
   }
-  return mappedError;
+
+  if (
+    name.includes('VideoUnavailable') ||
+    message.toLowerCase().includes('video unavailable')
+  ) {
+    const err = new Error(
+      'The video is unavailable or the ID is invalid.'
+    );
+    err.status = 404;
+    return err;
+  }
+
+  if (
+    name.includes('NotAvailable') ||
+    message.toLowerCase().includes('no transcript')
+  ) {
+    const err = new Error(
+      'No transcript found. The video may not have captions available.'
+    );
+    err.status = 404;
+    return err;
+  }
+
+  if (
+    name.includes('TooManyRequest') ||
+    message.toLowerCase().includes('captcha') ||
+    message.toLowerCase().includes('too many requests')
+  ) {
+    const err = new Error(
+      'YouTube is rate-limiting requests. Please try again later.'
+    );
+    err.status = 429;
+    return err;
+  }
+
+  const err = new Error(message || 'Failed to fetch transcript.');
+  err.status = 502;
+  return err;
 }
 
 /**
