@@ -124,7 +124,7 @@ async function fetchTranscript(videoId) {
   let usedLang = 'default';
 
   try {
-    rawSegments = await YoutubeTranscript.fetchTranscript(videoId);
+
     usedLang = rawSegments[0]?.lang || 'unknown';
   } catch (err) {
     throw mapError(err);
