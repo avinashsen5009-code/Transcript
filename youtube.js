@@ -11,7 +11,11 @@ const { YoutubeTranscript } = require('youtube-transcript');
  */
 async function fetchTranscript(videoId) {
   try {
+    console.log('Fetching transcript for video:', videoId);
+
     const segments = await YoutubeTranscript.fetchTranscript(videoId);
+
+    console.log('Transcript segments received:', segments?.length || 0);
 
     if (!segments || segments.length === 0) {
       const err = new Error('No transcript available for this video.');
@@ -19,22 +23,34 @@ async function fetchTranscript(videoId) {
       throw err;
     }
 
-    const formattedSegments = segments.map((seg) => ({
-      text: seg.text
-        .replace(/\r?\n/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim(),
-      offset: Math.round(seg.offset / 1000),
-      duration: Math.round(seg.duration / 1000),
-    })).filter((seg) => seg.text.length > 0);
+    const formattedSegments = segments
+      .map((seg) => ({
+        text: (seg.text || '')
+          .replace(/\r?\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim(),
+        offset: Math.round((seg.offset || 0) / 1000),
+        duration: Math.round((seg.duration || 0) / 1000),
+      }))
+      .filter((seg) => seg.text.length > 0);
 
     const fullText = formattedSegments.map((s) => s.text).join(' ');
 
-    return { segments: formattedSegments, fullText };
+    return {
+      segments: formattedSegments,
+      fullText,
+    };
   } catch (error) {
+    console.error('==============================');
+    console.error('YOUTUBE ERROR');
+    console.error(error);
+    console.error('Message:', error?.message);
+    console.error('Stack:', error?.stack);
+    console.error('==============================');
+
     if (error.status) throw error;
 
-    const message = error.message || '';
+    const message = error?.message || '';
 
     if (
       message.includes('disabled') ||
