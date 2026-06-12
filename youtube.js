@@ -81,33 +81,53 @@ async function fetchTranscript(videoId) {
     // Remove duplicate / overlapping captions
     const cleanedSegments = [];
 
-    for (const segment of segments) {
-      const currentText = segment.text
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+for (const segment of segments) {
+  const current = segment.text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-      if (!currentText) continue;
+  if (!current) continue;
 
-      if (cleanedSegments.length === 0) {
-        cleanedSegments.push(segment);
-        continue;
-      }
+  if (cleanedSegments.length === 0) {
+    cleanedSegments.push(segment);
+    continue;
+  }
 
-      const lastSegment =
-        cleanedSegments[cleanedSegments.length - 1];
+  const previous =
+    cleanedSegments[cleanedSegments.length - 1].text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-      const lastText = lastSegment.text
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+  // exact duplicate
+  if (current === previous) {
+    continue;
+  }
 
-      // Exact duplicate
-      if (currentText === lastText) {
-        continue;
-      }
+  // 80% overlap
+  const currentWords = current.split(" ");
+  const previousWords = previous.split(" ");
+
+  const overlap = previousWords.filter(word =>
+    currentWords.includes(word)
+  ).length;
+
+  const similarity =
+    overlap /
+    Math.max(previousWords.length, currentWords.length);
+
+  if (similarity > 0.8) {
+    if (currentWords.length > previousWords.length) {
+      cleanedSegments[cleanedSegments.length - 1] = segment;
+    }
+    continue;
+  }
+
+  cleanedSegments.push(segment);
+}
 
       // Current contains previous
       if (
