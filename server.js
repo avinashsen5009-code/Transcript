@@ -8,57 +8,61 @@ const path = require('path');
 
 const transcriptRouter = require('./transcript');
 const { apiLimiter } = require('./rateLimiter');
-const app = express();
-const PORT = parseInt(process.env.PORT, 10) || 3000;
 
-// ── Security middleware ──────────────────────────────────────────────
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "https://i.ytimg.com", "https://img.youtube.com", "data:"],
-      connectSrc: ["'self'"],
-    },
-  },
-}));
-app.use(cors({ origin: process.env.NODE_ENV === 'production' ? false : '*' }));
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Security
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+
+app.use(
+  cors({
+    origin: process.env.NODE_ENV === 'production' ? false : '*',
+  })
+);
+
 app.use(hpp());
 
-// ── Body parsing ─────────────────────────────────────────────────────
+// Body parsing
 app.use(express.json({ limit: '1kb' }));
 app.use(express.urlencoded({ extended: false, limit: '1kb' }));
 
-// ── Static files ─────────────────────────────────────────────────────
-app.use(express.static(__dirname)); {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-  etag: true,
-}));
+// Static files
+app.use(
+  express.static(__dirname, {
+    maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+    etag: true,
+  })
+);
 
-// ── API routes ───────────────────────────────────────────────────────
+// API routes
 app.use('/api', apiLimiter);
 app.use('/api/transcript', transcriptRouter);
 
-// ── SPA fallback ─────────────────────────────────────────────────────
-app.get('*', (_req, res) => {
+// Home page
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ── Global error handler ─────────────────────────────────────────────
-app.use((err, _req, res, _next) => {
-  console.error('[Error]', err.message);
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('[Error]', err);
+
   res.status(err.status || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production'
-      ? 'An unexpected error occurred.'
-      : err.message,
+    error:
+      process.env.NODE_ENV === 'production'
+        ? 'An unexpected error occurred.'
+        : err.message,
   });
 });
 
-// ── Start server ─────────────────────────────────────────────────────
+// Start server
 app.listen(PORT, () => {
   console.log(`✓ Server running on http://localhost:${PORT}`);
-  console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
