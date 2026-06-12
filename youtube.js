@@ -1,4 +1,4 @@
-const { YoutubeTranscript } = require('youtube-transcript');
+
 /**
  * Maps youtube-transcript custom errors to standard Errors with status codes.
  */
