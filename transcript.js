@@ -1,6 +1,6 @@
 const express = require('express');
-const { extractVideoId, isValidUrl } = require('../utils/validators');
-const { fetchTranscript } = require('../services/youtube');
+const { extractVideoId, isValidUrl } = require('./validators');
+const { fetchTranscript } = require('./youtube');
 const router = express.Router();
 
 /**
