@@ -5,12 +5,20 @@ async function fetchTranscript(videoId) {
     );
 
     if (!response.ok) {
-      const err = new Error('Failed to fetch transcript');
+      const err = new Error(
+        `Failed to fetch transcript (HTTP ${response.status})`
+      );
       err.status = response.status;
       throw err;
     }
 
-    const text = await response.text();
+    const text = (await response.text()).trim();
+
+    if (!text) {
+      const err = new Error('Transcript is empty');
+      err.status = 404;
+      throw err;
+    }
 
     const lines = text.split(/\r?\n/);
 
@@ -28,7 +36,10 @@ async function fetchTranscript(videoId) {
       const minutes = parseInt(match[2], 10);
       const seconds = parseInt(match[3], 10);
 
-      const offset = hours * 3600 + minutes * 60 + seconds;
+      const offset =
+        hours * 3600 +
+        minutes * 60 +
+        seconds;
 
       const transcriptText = match[4]
         .replace(/\r?\n/g, ' ')
@@ -44,14 +55,28 @@ async function fetchTranscript(videoId) {
       });
     }
 
-    for (let i = 0; i < segments.length - 1; i++) {
-      segments[i].duration =
-        segments[i + 1].offset - segments[i].offset;
+    if (segments.length === 0) {
+      return {
+        segments: [
+          {
+            text,
+            offset: 0,
+            duration: 0
+          }
+        ],
+        fullText: text
+      };
     }
 
-    if (segments.length > 0) {
-      segments[segments.length - 1].duration = 5;
+    for (let i = 0; i < segments.length - 1; i++) {
+      segments[i].duration =
+        Math.max(
+          0,
+          segments[i + 1].offset - segments[i].offset
+        );
     }
+
+    segments[segments.length - 1].duration = 5;
 
     const fullText = segments
       .map(segment => segment.text)
@@ -65,7 +90,9 @@ async function fetchTranscript(videoId) {
     const err = new Error(
       error.message || 'Failed to fetch transcript.'
     );
+
     err.status = error.status || 502;
+
     throw err;
   }
 }
