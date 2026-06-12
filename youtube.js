@@ -68,22 +68,87 @@ async function fetchTranscript(videoId) {
       };
     }
 
+    // Calculate durations
     for (let i = 0; i < segments.length - 1; i++) {
-      segments[i].duration =
-        Math.max(
-          0,
-          segments[i + 1].offset - segments[i].offset
-        );
+      segments[i].duration = Math.max(
+        0,
+        segments[i + 1].offset - segments[i].offset
+      );
     }
 
     segments[segments.length - 1].duration = 5;
 
-    const fullText = segments
-      .map(segment => segment.text)
-      .join(' ');
+    // Remove duplicate / overlapping captions
+    const cleanedSegments = [];
+
+    for (const segment of segments) {
+      const currentText = segment.text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!currentText) continue;
+
+      if (cleanedSegments.length === 0) {
+        cleanedSegments.push(segment);
+        continue;
+      }
+
+      const lastSegment =
+        cleanedSegments[cleanedSegments.length - 1];
+
+      const lastText = lastSegment.text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Exact duplicate
+      if (currentText === lastText) {
+        continue;
+      }
+
+      // Current contains previous
+      if (
+        currentText.length > lastText.length &&
+        currentText.includes(lastText)
+      ) {
+        cleanedSegments[cleanedSegments.length - 1] = segment;
+        continue;
+      }
+
+      // Previous contains current
+      if (
+        lastText.length > currentText.length &&
+        lastText.includes(currentText)
+      ) {
+        continue;
+      }
+
+      cleanedSegments.push(segment);
+    }
+
+    let fullText = '';
+
+    for (const segment of cleanedSegments) {
+      const text = segment.text.trim();
+
+      if (!text) continue;
+
+      if (fullText.endsWith(text)) {
+        continue;
+      }
+
+      fullText += ' ' + text;
+    }
+
+    fullText = fullText
+      .replace(/\s+/g, ' ')
+      .trim();
 
     return {
-      segments,
+      segments: cleanedSegments,
       fullText
     };
   } catch (error) {
