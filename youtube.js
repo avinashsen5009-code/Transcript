@@ -78,61 +78,40 @@ async function fetchTranscript(videoId) {
 
     segments[segments.length - 1].duration = 5;
 
-    // Remove duplicate / overlapping captions
+    // Remove duplicate captions
     const cleanedSegments = [];
 
-for (const segment of segments) {
-  const current = segment.text
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+    for (const segment of segments) {
+      const current = segment.text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-  if (!current) continue;
+      if (!current) continue;
 
-  if (cleanedSegments.length === 0) {
-    cleanedSegments.push(segment);
-    continue;
-  }
+      if (cleanedSegments.length === 0) {
+        cleanedSegments.push(segment);
+        continue;
+      }
 
-  const previous =
-    cleanedSegments[cleanedSegments.length - 1].text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+      const previous = cleanedSegments[
+        cleanedSegments.length - 1
+      ].text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-  // exact duplicate
-  if (current === previous) {
-    continue;
-  }
-
-  // 80% overlap
-  const currentWords = current.split(" ");
-  const previousWords = previous.split(" ");
-
-  const overlap = previousWords.filter(word =>
-    currentWords.includes(word)
-  ).length;
-
-  const similarity =
-    overlap /
-    Math.max(previousWords.length, currentWords.length);
-
-  if (similarity > 0.8) {
-    if (currentWords.length > previousWords.length) {
-      cleanedSegments[cleanedSegments.length - 1] = segment;
-    }
-    continue;
-  }
-
-  cleanedSegments.push(segment);
-}
+      // Exact duplicate
+      if (current === previous) {
+        continue;
+      }
 
       // Current contains previous
       if (
-        currentText.length > lastText.length &&
-        currentText.includes(lastText)
+        current.length > previous.length &&
+        current.includes(previous)
       ) {
         cleanedSegments[cleanedSegments.length - 1] = segment;
         continue;
@@ -140,8 +119,8 @@ for (const segment of segments) {
 
       // Previous contains current
       if (
-        lastText.length > currentText.length &&
-        lastText.includes(currentText)
+        previous.length > current.length &&
+        previous.includes(current)
       ) {
         continue;
       }
@@ -149,21 +128,9 @@ for (const segment of segments) {
       cleanedSegments.push(segment);
     }
 
-    let fullText = '';
-
-    for (const segment of cleanedSegments) {
-      const text = segment.text.trim();
-
-      if (!text) continue;
-
-      if (fullText.endsWith(text)) {
-        continue;
-      }
-
-      fullText += ' ' + text;
-    }
-
-    fullText = fullText
+    const fullText = cleanedSegments
+      .map(segment => segment.text)
+      .join(' ')
       .replace(/\s+/g, ' ')
       .trim();
 
