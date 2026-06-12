@@ -6,8 +6,9 @@ const cors = require('cors');
 const hpp = require('hpp');
 const path = require('path');
 
-const transcriptRouter = require('./transcript');
-const { apiLimiter } = require('./rateLimiter');
+const transcriptRouter = require('./src/routes/transcript');
+const { apiLimiter } = require('./src/middleware/rateLimiter');
+
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 
@@ -32,17 +33,18 @@ app.use(express.json({ limit: '1kb' }));
 app.use(express.urlencoded({ extended: false, limit: '1kb' }));
 
 // ── Static files ─────────────────────────────────────────────────────
-app.use(express.static(__dirname, {
+app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
   etag: true,
 }));
+
 // ── API routes ───────────────────────────────────────────────────────
 app.use('/api', apiLimiter);
 app.use('/api/transcript', transcriptRouter);
 
 // ── SPA fallback ─────────────────────────────────────────────────────
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ── Global error handler ─────────────────────────────────────────────
