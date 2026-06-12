@@ -6,8 +6,8 @@ const cors = require('cors');
 const hpp = require('hpp');
 const path = require('path');
 
-const transcriptRouter = require('./src/routes/transcript');
-const { apiLimiter } = require('./src/middleware/rateLimiter');
+const transcriptRouter = require('./transcript');
+const { apiLimiter } = require('./rateLimiter');
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 
